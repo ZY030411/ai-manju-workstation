@@ -1,0 +1,552 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0e0d0c">
+  <title>AI 漫剧导演台</title>
+  <link rel="stylesheet" href="css/director.css?v=1.4">
+</head>
+<body>
+  <svg class="svg-sprite" aria-hidden="true">
+    <symbol id="i-mark" viewBox="0 0 24 24">
+      <path d="M4 3h11v2H6v16h13V9h2v14H4V3Z"></path>
+      <path d="M15 3h6v6h-2V6.4l-7.3 7.3-1.4-1.4L17.6 5H15V3Z"></path>
+    </symbol>
+    <symbol id="i-plus" viewBox="0 0 24 24">
+      <path d="M12 4v16M4 12h16"></path>
+    </symbol>
+    <symbol id="i-minus" viewBox="0 0 24 24">
+      <path d="M4 12h16"></path>
+    </symbol>
+    <symbol id="i-chevron-left" viewBox="0 0 24 24">
+      <path d="m15 18-6-6 6-6"></path>
+    </symbol>
+    <symbol id="i-chevron-right" viewBox="0 0 24 24">
+      <path d="m9 18 6-6-6-6"></path>
+    </symbol>
+    <symbol id="i-sun" viewBox="0 0 24 24">
+      <circle cx="12" cy="12" r="4"></circle>
+      <path d="M12 2v2M12 20v2M4.93 4.93l1.42 1.42M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.42-1.42M17.66 6.34l1.41-1.41"></path>
+    </symbol>
+    <symbol id="i-moon" viewBox="0 0 24 24">
+      <path d="M20.5 14.2A8.5 8.5 0 0 1 9.8 3.5 8.5 8.5 0 1 0 20.5 14.2Z"></path>
+    </symbol>
+    <symbol id="i-settings" viewBox="0 0 24 24">
+      <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z"></path>
+      <path d="m19.4 15 .1.1 1.5 1.2-2.4 4.1-1.8-.7-.2-.1a8 8 0 0 1-1.7 1l-.2.1-.3 2h-4.8l-.3-2-.2-.1a8 8 0 0 1-1.7-1l-.2.1-1.8.7-2.4-4.1 1.5-1.2.1-.1a8 8 0 0 1 0-2l-.1-.1-1.5-1.2 2.4-4.1 1.8.7.2.1a8 8 0 0 1 1.7-1l.2-.1.3-2h4.8l.3 2 .2.1a8 8 0 0 1 1.7 1l.2-.1 1.8-.7 2.4 4.1-1.5 1.2-.1.1a8 8 0 0 1 0 2Z"></path>
+    </symbol>
+    <symbol id="i-upload" viewBox="0 0 24 24">
+      <path d="M12 16V4M7 9l5-5 5 5M4 16v4h16v-4"></path>
+    </symbol>
+    <symbol id="i-download" viewBox="0 0 24 24">
+      <path d="M12 4v12M7 11l5 5 5-5M4 20h16"></path>
+    </symbol>
+    <symbol id="i-scan" viewBox="0 0 24 24">
+      <path d="M4 8V4h4M16 4h4v4M20 16v4h-4M8 20H4v-4M7 12h10"></path>
+    </symbol>
+    <symbol id="i-spark" viewBox="0 0 24 24">
+      <path d="m12 3 1.2 4.2L17 9l-3.8 1.8L12 15l-1.2-4.2L7 9l3.8-1.8L12 3Z"></path>
+      <path d="m18.5 15 .7 2.3 2.3.7-2.3.7-.7 2.3-.7-2.3-2.3-.7 2.3-.7.7-2.3Z"></path>
+    </symbol>
+    <symbol id="i-image" viewBox="0 0 24 24">
+      <rect x="3" y="4" width="18" height="16" rx="1"></rect>
+      <circle cx="8.5" cy="9" r="1.5"></circle>
+      <path d="m4 17 5-5 4 4 2-2 5 4"></path>
+    </symbol>
+    <symbol id="i-trash" viewBox="0 0 24 24">
+      <path d="M4 7h16M9 3h6l1 4H8l1-4ZM7 7l1 14h8l1-14M10 11v6M14 11v6"></path>
+    </symbol>
+    <symbol id="i-copy" viewBox="0 0 24 24">
+      <rect x="8" y="8" width="12" height="12" rx="1"></rect>
+      <path d="M16 8V4H4v12h4"></path>
+    </symbol>
+    <symbol id="i-file" viewBox="0 0 24 24">
+      <path d="M5 3h10l4 4v14H5V3Z"></path>
+      <path d="M15 3v5h5M8 12h8M8 16h8"></path>
+    </symbol>
+    <symbol id="i-film" viewBox="0 0 24 24">
+      <rect x="3" y="5" width="18" height="14" rx="1"></rect>
+      <path d="M7 5v14M17 5v14M3 9h4M3 15h4M17 9h4M17 15h4"></path>
+    </symbol>
+    <symbol id="i-close" viewBox="0 0 24 24">
+      <path d="m6 6 12 12M18 6 6 18"></path>
+    </symbol>
+    <symbol id="i-more" viewBox="0 0 24 24">
+      <circle cx="5" cy="12" r="1"></circle>
+      <circle cx="12" cy="12" r="1"></circle>
+      <circle cx="19" cy="12" r="1"></circle>
+    </symbol>
+    <symbol id="i-reload" viewBox="0 0 24 24">
+      <path d="M20 7v5h-5M4 17v-5h5"></path>
+      <path d="M6.1 8.2A7 7 0 0 1 19 12M5 12a7 7 0 0 0 12.9 3.8"></path>
+    </symbol>
+  </svg>
+
+  <div class="app-shell">
+    <header class="topbar">
+      <button class="brand" id="brandHome" aria-label="返回项目入口">
+        <svg class="brand-mark" aria-hidden="true"><use href="#i-mark"></use></svg>
+        <span class="brand-copy">
+          <strong>漫剧导演台</strong>
+        </span>
+      </button>
+      <div class="project-crumb" id="projectCrumb">
+        <span class="crumb-label">项目</span>
+        <span class="crumb-name">尚未创建</span>
+        <span class="save-state" id="saveState">自动保存</span>
+      </div>
+      <div class="top-actions">
+        <button class="icon-button" id="themeToggle" aria-label="切换日夜模式" title="切换日夜模式">
+          <svg><use href="#i-sun"></use></svg>
+        </button>
+        <button class="text-button" id="modelButton">
+          <svg><use href="#i-settings"></use></svg>
+          <span>模型</span>
+        </button>
+        <button class="text-button top-export" id="exportProject">
+          <svg><use href="#i-download"></use></svg>
+          <span>导出项目</span>
+        </button>
+        <button class="text-button top-new" id="newProjectButton">
+          <svg><use href="#i-plus"></use></svg>
+          <span>新项目</span>
+        </button>
+      </div>
+    </header>
+
+    <main class="main-canvas">
+      <section class="setup-view" id="setupView">
+        <div class="setup-heading">
+          <div>
+            <p class="context-line">AI 漫剧制作系统</p>
+            <h1>把一场戏，拆到镜头里</h1>
+            <p class="setup-intro">导入长剧本，识别每一集，再按导演要求编排镜头组。项目只保存在你的浏览器中。</p>
+          </div>
+          <div class="setup-proof" aria-label="工作流">
+            <div class="proof-row"><span>识别长剧本</span><b id="proofEpisodes">待导入</b></div>
+            <div class="proof-row"><span>画幅与镜头规则</span><b>竖屏 / 横屏</b></div>
+            <div class="proof-row"><span>分集生成与改写</span><b>本地保存</b></div>
+          </div>
+        </div>
+
+        <div class="setup-grid">
+          <section class="setup-card import-card">
+            <div class="section-heading">
+              <div>
+                <h2>新建项目</h2>
+                <p>给这次制作一个名字，然后载入剧本。</p>
+              </div>
+              <span class="step-marker">项目</span>
+            </div>
+            <label class="field">
+              <span>项目名称</span>
+              <input type="text" id="projectNameInput" maxlength="60" placeholder="例如：镇北王府·第一季">
+            </label>
+            <label class="field script-field">
+              <span>剧本正文</span>
+              <textarea id="scriptInput" rows="12" placeholder="粘贴完整剧本，支持“第1集 / EP01 / 1-1 日 外 场景”等集数与场次标记。"></textarea>
+            </label>
+            <div class="drop-row" id="scriptDrop">
+              <div class="drop-icon"><svg><use href="#i-file"></use></svg></div>
+              <div>
+                <strong>拖入 .txt / .md 剧本</strong>
+                <span>或从电脑选择文件，长剧本会按集切分</span>
+              </div>
+              <label class="secondary-button">
+                选择文件
+                <input type="file" id="scriptFile" accept=".txt,.md,text/plain,text/markdown" hidden>
+              </label>
+            </div>
+            <div class="script-metrics">
+              <span><b id="scriptChars">0</b> 字</span>
+              <span><b id="scriptLines">0</b> 行</span>
+              <span id="scriptFileState">等待剧本</span>
+            </div>
+            <div class="setup-actions">
+              <button class="text-button subtle" id="loadDemoButton">载入示例项目</button>
+              <span class="spacer"></span>
+              <button class="primary-button" id="scanScriptButton">
+                <svg><use href="#i-scan"></use></svg>
+                识别剧本
+              </button>
+            </div>
+          </section>
+
+          <section class="setup-card orientation-card">
+            <div class="section-heading">
+              <div>
+                <h2>画幅与制作</h2>
+                <p>画幅会写入每个镜头的构图画布。</p>
+              </div>
+              <span class="step-marker">设定</span>
+            </div>
+            <div class="format-options" role="radiogroup" aria-label="视频画幅">
+              <button class="format-option selected" data-format="vertical" role="radio" aria-checked="true">
+                <span class="format-frame vertical-frame"></span>
+                <span><strong>竖屏漫剧</strong><small>9:16 · 手机短剧</small></span>
+                <span class="format-check"></span>
+              </button>
+              <button class="format-option" data-format="horizontal" role="radio" aria-checked="false">
+                <span class="format-frame horizontal-frame"></span>
+                <span><strong>横屏漫剧</strong><small>16:9 · 宽银幕叙事</small></span>
+                <span class="format-check"></span>
+              </button>
+            </div>
+            <div class="scan-summary" id="scanSummary" aria-live="polite">
+              <div class="summary-empty">
+                <svg><use href="#i-film"></use></svg>
+                <strong>识别后显示剧本概况</strong>
+                <span>集数、场次、人物与场景线索会在这里汇总。</span>
+              </div>
+            </div>
+            <button class="primary-button full-width" id="enterWorkspace" disabled>
+              进入导演台
+              <svg><use href="#i-chevron-right"></use></svg>
+            </button>
+            <button class="text-button import-project" id="importProjectButton">
+              <svg><use href="#i-upload"></use></svg>
+              导入项目文件
+            </button>
+            <input type="file" id="projectFile" accept=".json,application/json" hidden>
+          </section>
+        </div>
+
+        <div class="workflow-strip" aria-label="导演台工作流">
+          <div class="workflow-item"><span class="workflow-state done">项目</span><strong>创建与存稿</strong><p>自动保存剧本和镜头修改。</p></div>
+          <div class="workflow-item"><span class="workflow-state">识别</span><strong>锁定每集边界</strong><p>按标题与场次编号切分，不串集。</p></div>
+          <div class="workflow-item"><span class="workflow-state">编排</span><strong>8–15 组镜头</strong><p>每组 4–6 镜，台词不拆错。</p></div>
+          <div class="workflow-item"><span class="workflow-state">审片</span><strong>参考图与改写</strong><p>不满意的镜头可单独重做。</p></div>
+        </div>
+      </section>
+
+      <section class="director-view" id="directorView" hidden>
+        <aside class="episode-rail" id="episodeRail">
+          <div class="rail-heading">
+            <div>
+              <h2>分集与任务</h2>
+              <p id="projectMeta">尚未识别剧本</p>
+            </div>
+            <button class="icon-button quiet" id="projectMenuButton" aria-label="项目设置">
+              <svg><use href="#i-more"></use></svg>
+            </button>
+          </div>
+          <div class="rail-summary">
+            <div><span>集数</span><strong id="episodeCount">0</strong></div>
+            <div><span>已生成</span><strong id="generatedCount">0</strong></div>
+            <div><span>镜头</span><strong id="shotCount">0</strong></div>
+          </div>
+          <label class="search-field">
+            <span class="sr-only">搜索集数</span>
+            <input type="search" id="episodeSearch" placeholder="搜索集数">
+          </label>
+          <div class="rail-tools">
+            <label class="check-row select-all">
+              <input type="checkbox" id="selectAllEpisodes">
+              <span>选择全部</span>
+            </label>
+            <span id="selectedEpisodeCount">已选 0 集</span>
+          </div>
+          <div class="episode-list" id="episodeList"></div>
+          <div class="generation-panel" id="generationPanel">
+            <div class="generation-meta">
+              <span id="generationLabel">等待选择集数</span>
+              <span id="generationPercent">0%</span>
+            </div>
+            <div class="progress-track"><div class="progress-fill" id="generationProgress"></div></div>
+            <div class="generation-stage" id="generationStage"></div>
+            <div class="generation-actions">
+              <button class="primary-button" id="generateSelected">
+                <svg><use href="#i-spark"></use></svg>
+                生成所选分镜
+              </button>
+              <button class="secondary-button cancel-button" id="cancelGeneration" hidden>停止</button>
+            </div>
+          </div>
+          <div class="rail-footer">
+            <button class="rail-link" id="rulesButton">
+              <svg><use href="#i-settings"></use></svg>
+              分镜配置
+            </button>
+            <a class="rail-link" href="assets.html">
+              <svg><use href="#i-file"></use></svg>
+              资产工作台
+            </a>
+          </div>
+        </aside>
+
+        <section class="shot-canvas" id="shotCanvas">
+          <div class="canvas-heading">
+            <div class="episode-title-wrap">
+              <button class="icon-button quiet mobile-back" id="mobileBackToEpisodes" aria-label="返回集数">
+                <svg><use href="#i-chevron-left"></use></svg>
+              </button>
+              <div>
+                <h1 id="currentEpisodeTitle">选择一个集数</h1>
+                <p id="currentEpisodeMeta">从左侧勾选并生成分镜，或查看已生成的镜头。</p>
+              </div>
+            </div>
+            <div class="canvas-actions">
+              <button class="secondary-button" id="retryEpisode" hidden>
+                <svg><use href="#i-reload"></use></svg>
+                重试本集
+              </button>
+              <button class="primary-button" id="generateCurrentEpisode" disabled>
+                生成当前集
+              </button>
+            </div>
+          </div>
+
+          <div class="empty-state" id="emptyStoryboard">
+            <div class="empty-frame">
+              <span class="frame-corner top-left"></span>
+              <span class="frame-corner top-right"></span>
+              <span class="frame-corner bottom-left"></span>
+              <span class="frame-corner bottom-right"></span>
+              <svg><use href="#i-film"></use></svg>
+            </div>
+            <h2>镜头还没有入场</h2>
+            <p>选择左侧一个或多个集数，导演台会按 8–15 组、每组 4–6 镜的结构拆分。</p>
+            <button class="secondary-button" id="emptyGenerateButton">生成当前集</button>
+          </div>
+
+          <div class="storyboard-workspace" id="storyboardWorkspace" hidden>
+            <div class="group-toolbar">
+              <div class="group-switcher" id="groupSwitcher" role="tablist" aria-label="镜头组"></div>
+              <div class="group-tools">
+                <button class="icon-button quiet" id="previousGroup" aria-label="上一组" title="上一组">
+                  <svg><use href="#i-chevron-left"></use></svg>
+                </button>
+                <span class="group-counter" id="groupCounter">0 / 0</span>
+                <button class="icon-button quiet" id="nextGroup" aria-label="下一组" title="下一组">
+                  <svg><use href="#i-chevron-right"></use></svg>
+                </button>
+                <button class="secondary-button compact" id="addGroup">
+                  <svg><use href="#i-plus"></use></svg>
+                  加一组
+                </button>
+              </div>
+            </div>
+
+            <div class="group-meta-bar">
+              <label>
+                <span>组标题</span>
+                <input id="groupTitleInput" type="text" placeholder="第1组">
+              </label>
+              <label class="location-field">
+                <span>场景 / 调度</span>
+                <input id="groupLocationInput" type="text" placeholder="场景与人物位置">
+              </label>
+              <label>
+                <span>情绪</span>
+                <input id="groupEmotionInput" type="text" placeholder="紧张、克制…">
+              </label>
+              <label class="duration-field">
+                <span>总时长</span>
+                <input id="groupDurationInput" type="number" min="1" max="60" step="0.5">
+              </label>
+              <button class="icon-button danger-hover" id="deleteGroup" aria-label="删除当前组" title="删除当前组">
+                <svg><use href="#i-trash"></use></svg>
+              </button>
+            </div>
+
+            <div class="shot-grid" id="shotGrid"></div>
+
+            <div class="timeline-panel">
+              <div class="timeline-heading">
+                <h2>本组时间轴</h2>
+                <span id="timelineTotal">0 秒</span>
+              </div>
+              <div class="shot-timeline" id="shotTimeline"></div>
+              <div class="timeline-actions">
+                <button class="secondary-button" id="addShot">
+                  <svg><use href="#i-plus"></use></svg>
+                  增加镜头
+                </button>
+                <button class="text-button" id="copyGroup">
+                  <svg><use href="#i-copy"></use></svg>
+                  复制本组
+                </button>
+                <button class="text-button" id="copyEpisode">
+                  <svg><use href="#i-copy"></use></svg>
+                  复制本集
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <aside class="shot-inspector" id="shotInspector">
+          <div class="inspector-heading">
+            <div>
+              <h2>镜头审阅</h2>
+              <p id="shotInspectorMeta">选择画面中的镜头开始修改</p>
+            </div>
+            <button class="icon-button quiet mobile-back" id="mobileBackToShots" aria-label="返回镜头">
+              <svg><use href="#i-chevron-left"></use></svg>
+            </button>
+          </div>
+          <div class="inspector-empty" id="inspectorEmpty">
+            <svg><use href="#i-film"></use></svg>
+            <strong>尚未选择镜头</strong>
+            <span>点选中央镜头卡，可编辑画面、台词与参考图。</span>
+          </div>
+          <form class="shot-form" id="shotForm" hidden>
+            <div class="shot-id-row">
+              <span id="shotNumber">镜头 01</span>
+              <button type="button" class="icon-button danger-hover" id="deleteShot" aria-label="删除镜头">
+                <svg><use href="#i-trash"></use></svg>
+              </button>
+            </div>
+            <div class="form-grid compact-grid">
+              <label class="field"><span>景别</span><input name="size" type="text" placeholder="近景"></label>
+              <label class="field"><span>角度</span><input name="angle" type="text" placeholder="平拍"></label>
+              <label class="field"><span>运镜</span><input name="movement" type="text" placeholder="缓推"></label>
+              <label class="field"><span>时长（秒）</span><input name="duration" type="number" min="0.5" max="20" step="0.5"></label>
+            </div>
+            <label class="field"><span>画面</span><textarea name="visual" rows="3" placeholder="人物、动作、构图与视线关系"></textarea></label>
+            <label class="field"><span>台词</span><textarea name="dialogue" rows="2" placeholder="保留剧本原台词；没有则留空"></textarea></label>
+            <div class="form-grid compact-grid">
+              <label class="field"><span>光影</span><input name="lighting" type="text" placeholder="侧逆光、暖色台灯"></label>
+              <label class="field"><span>特效 / 环境</span><input name="effects" type="text" placeholder="雨丝、灰尘、衣摆"></label>
+            </div>
+            <label class="field"><span>最终分镜提示词</span><textarea name="prompt" rows="5" placeholder="用于生成画面的完整提示词"></textarea></label>
+
+            <div class="reference-block">
+              <div class="reference-heading">
+                <div><strong>参考图</strong><span>人物 / 场景 / 道具</span></div>
+                <button type="button" class="text-button" id="addReference">
+                  <svg><use href="#i-image"></use></svg>
+                  添加
+                </button>
+              </div>
+              <input type="file" id="referenceFile" accept="image/*" hidden>
+              <div class="reference-tabs" id="referenceTypeTabs">
+                <button type="button" class="active" data-ref-type="character">人物</button>
+                <button type="button" data-ref-type="scene">场景</button>
+                <button type="button" data-ref-type="prop">道具</button>
+              </div>
+              <div class="reference-list" id="referenceList"></div>
+              <button type="button" class="secondary-button full-width reference-regenerate" id="regenerateWithReferences">
+                <svg><use href="#i-scan"></use></svg>
+                按参考图重新生成当前镜
+              </button>
+            </div>
+
+            <div class="rewrite-block">
+              <div class="rewrite-heading">
+                <strong>改写这个镜头</strong>
+                <span>只替换当前镜头，不影响其余分镜</span>
+              </div>
+              <textarea id="shotIdea" rows="3" placeholder="例：不要正面特写，改为从屏风后缓慢推近，突出她攥紧袖口的手。"></textarea>
+              <button type="button" class="primary-button full-width" id="rewriteShot">
+                <svg><use href="#i-spark"></use></svg>
+                按我的想法重写
+              </button>
+            </div>
+            <div class="inspector-save">
+              <span id="shotSaveStatus">修改自动保存</span>
+              <button type="submit" class="secondary-button compact">保存镜头</button>
+            </div>
+          </form>
+        </aside>
+
+        <nav class="mobile-nav" aria-label="导演台区域">
+          <button class="active" data-mobile-view="episodes"><span>集数</span></button>
+          <button data-mobile-view="groups"><span>镜头组</span></button>
+          <button data-mobile-view="detail"><span>镜头审阅</span></button>
+        </nav>
+      </section>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="settingsModal" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="settingsTitle">
+      <div class="modal-head">
+        <div><h2 id="settingsTitle">模型连接</h2><p>浏览器保存密钥，不写入项目文件。</p></div>
+        <button class="icon-button" data-close-modal="settingsModal" aria-label="关闭"><svg><use href="#i-close"></use></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="notice" id="modelConnectionNotice">
+          <strong>模型设置</strong>
+          <span>可从已配置的厂商中选择，也可以使用 OpenAI 兼容接口。</span>
+        </div>
+        <div class="form-grid">
+          <label class="field"><span>模型厂商</span><select id="providerSelect"></select></label>
+          <label class="field"><span>模型名称</span><input type="text" id="modelNameInput" list="modelNames" placeholder="模型名称"><datalist id="modelNames"></datalist></label>
+          <label class="field span-2"><span>API 地址</span><input type="url" id="baseUrlInput" placeholder="https://api.example.com/v1"></label>
+          <label class="field span-2"><span>API Key</span><input type="password" id="apiKeyInput" autocomplete="off" placeholder="sk-…"></label>
+          <label class="field"><span>Temperature</span><input type="number" id="temperatureInput" min="0" max="2" step="0.1"></label>
+          <label class="field"><span>单集输出上限</span><input type="number" id="maxTokensInput" min="2000" max="65536" step="1000"></label>
+        </div>
+        <label class="check-row vision-check">
+          <input type="checkbox" id="visionInput">
+          <span>向模型发送参考图</span>
+          <small>仅对支持图片输入的视觉模型开启；失败时自动退回文字参考说明。</small>
+        </label>
+        <div class="connection-state" id="connectionState"></div>
+      </div>
+      <div class="modal-foot">
+        <button class="text-button" id="testConnection">测试连接</button>
+        <span class="spacer"></span>
+        <button class="secondary-button" data-close-modal="settingsModal">取消</button>
+        <button class="primary-button" id="saveModelSettings">保存设置</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="modal-backdrop" id="rulesModal" hidden>
+    <section class="modal modal-wide" role="dialog" aria-modal="true" aria-labelledby="rulesTitle">
+      <div class="modal-head">
+        <div><h2 id="rulesTitle">分镜提示词配置</h2><p>这里的规则会随每次分镜和改写的请求一起发送。</p></div>
+        <button class="icon-button" data-close-modal="rulesModal" aria-label="关闭"><svg><use href="#i-close"></use></svg></button>
+      </div>
+      <div class="modal-body">
+        <div class="rules-actions">
+          <label class="secondary-button">
+            <svg><use href="#i-upload"></use></svg>
+            导入配置
+            <input type="file" id="rulesFile" accept=".txt,.md,text/plain,text/markdown" hidden>
+          </label>
+          <button class="text-button" id="resetRules">恢复默认</button>
+          <span id="rulesFileLabel">支持 .txt / .md</span>
+        </div>
+        <label class="field">
+          <span>导演与提示词规则</span>
+          <textarea id="rulesInput" rows="20"></textarea>
+        </label>
+      </div>
+      <div class="modal-foot">
+        <span class="spacer"></span>
+        <button class="secondary-button" data-close-modal="rulesModal">取消</button>
+        <button class="primary-button" id="saveRules">保存配置</button>
+      </div>
+    </section>
+  </div>
+
+  <div class="scan-overlay" id="scanOverlay" hidden aria-live="polite">
+    <div class="scan-window">
+      <div class="scan-corners"><i></i><i></i><i></i><i></i></div>
+      <div class="scan-line"></div>
+      <div class="scan-title">正在通读剧本</div>
+      <div class="scan-stage" id="scanStage">扫描集数标题</div>
+      <div class="scan-progress"><span id="scanProgress"></span></div>
+      <div class="scan-meta" id="scanMeta">准备识别剧本边界</div>
+    </div>
+  </div>
+
+  <div class="generation-overlay" id="generationOverlay" hidden aria-live="polite">
+    <div class="generation-light"></div>
+    <div class="generation-copy">
+      <span>导演台正在编排</span>
+      <strong id="generationOverlayTitle">拆解镜头语言</strong>
+      <small id="generationOverlayMeta">正在保持台词与集数边界</small>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="js/prompts.js?v=2.2"></script>
+  <script src="js/director.js?v=1.4"></script>
+</body>
+</html>

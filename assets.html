@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>AI 漫剧工作站</title>
+  <link rel="stylesheet" href="static/css/style.css?v=2.2">
+</head>
+<body>
+  <!-- 访问密码登录 -->
+  <div class="login-overlay hidden" id="loginOverlay">
+    <div class="login-card">
+      <div class="login-logo">漫</div>
+      <h2>AI 漫剧工作站</h2>
+      <p>该站点已开启访问密码，请输入后进入</p>
+      <input type="password" id="loginPassword" placeholder="访问密码" autocomplete="current-password">
+      <button class="btn primary big" id="loginBtn">进入工作站</button>
+      <div class="login-error hidden" id="loginError"></div>
+    </div>
+  </div>
+
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">漫</div>
+        <div>
+          <div class="brand-name">AI 漫剧工作站</div>
+          <div class="brand-sub">剧本 → 资产 → 提示词 → 分镜</div>
+        </div>
+      </div>
+
+      <nav class="steps-nav" id="stepsNav">
+        <button class="step-btn active" data-step="1"><span class="step-ico">📜</span><span class="step-num">1</span><span>上传剧本</span></button>
+        <button class="step-btn" data-step="2"><span class="step-ico">🎬</span><span class="step-num">2</span><span>选择风格</span></button>
+        <button class="step-btn" data-step="3"><span class="step-ico">⚙️</span><span class="step-num">3</span><span>模型配置</span></button>
+        <button class="step-btn" data-step="4"><span class="step-ico">🧩</span><span class="step-num">4</span><span>资产拆分</span></button>
+        <button class="step-btn" data-step="5"><span class="step-ico">✨</span><span class="step-num">5</span><span>提示词生成</span></button>
+        <button class="step-btn" data-step="6"><span class="step-ico">🔍</span><span class="step-num">6</span><span>校验与补全</span></button>
+        <button class="step-btn" data-step="7"><span class="step-ico">🎞️</span><span class="step-num">7</span><span>分镜生成</span></button>
+      </nav>
+
+      <div class="sidebar-foot">
+        <div class="share-status" id="shareStatus" title="当前访问模式">仅本机访问</div>
+        <label class="switch-row">
+          <span>演示模式（无需 API Key）</span>
+          <input type="checkbox" id="demoMode">
+          <span class="switch"></span>
+        </label>
+        <div class="provider-badge" id="providerBadge">未配置模型</div>
+        <div class="version" id="appVersion">v2.0</div>
+      </div>
+    </aside>
+
+    <main class="content">
+      <!-- ========== 第 1 步：上传剧本 ========== -->
+      <section class="step-panel active" id="step-1">
+        <div class="panel-head">
+          <h2>上传剧本</h2>
+          <p>粘贴剧本全文或上传 .txt，系统将据此完成资产拆分与分镜生成。</p>
+        </div>
+        <div class="card script-card">
+          <div class="script-toolbar">
+            <span class="hint">支持格式：剧本 / 对白 / 剧情梗概</span>
+            <span class="spacer"></span>
+            <span class="chip" id="scriptCount">0 字</span>
+          </div>
+          <textarea id="scriptInput" rows="16" placeholder="在此粘贴剧本 / 对白 / 剧情梗概…（建议包含：场景、人物、台词、动作）"></textarea>
+          <div class="toolbar">
+            <button class="btn ghost" id="loadSample">载入示例剧本</button>
+            <label class="btn ghost file-btn">
+              上传 .txt 文件
+              <input type="file" id="scriptFile" accept=".txt,text/plain" hidden>
+            </label>
+            <span class="spacer"></span>
+            <button class="btn primary" id="toStep2">下一步：选择风格 <span class="arrow">→</span></button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== 第 2 步：选择风格 ========== -->
+      <section class="step-panel" id="step-2">
+        <div class="panel-head">
+          <h2>选择制作风格</h2>
+          <p>风格会注入到资产描述、提示词与分镜的画面语言中。</p>
+        </div>
+        <div class="style-grid">
+          <div class="style-card" data-style="ai_real">
+            <div class="style-glow glow-real"></div>
+            <div class="style-icon">🎬</div>
+            <div class="style-name">AI 真人</div>
+            <div class="style-desc">真实人物质感 · 电影级摄影<br>皮肤纹理自然 · 实拍氛围</div>
+            <div class="style-check">✓</div>
+          </div>
+          <div class="style-card" data-style="3d">
+            <div class="style-glow glow-3d"></div>
+            <div class="style-icon">🤖</div>
+            <div class="style-name">3D 漫剧</div>
+            <div class="style-desc">次世代 3D 渲染 · 三维卡通质感<br>角色建模精致 · 游戏级画质</div>
+            <div class="style-check">✓</div>
+          </div>
+        </div>
+        <div class="toolbar">
+          <button class="btn ghost" data-goto="1">← 上一步</button>
+          <span class="spacer"></span>
+          <button class="btn primary" id="toStep3">下一步：模型配置 →</button>
+        </div>
+      </section>
+
+      <!-- ========== 第 3 步：模型配置 ========== -->
+      <section class="step-panel" id="step-3">
+        <div class="panel-head">
+          <h2>模型与分享配置</h2>
+          <p>选择要调用的大模型；开启访问密码后，可把网站分享给局域网或公网中的其他人。</p>
+        </div>
+        <div class="grid-2">
+          <div class="card">
+            <div class="panel-sub">① 模型配置</div>
+            <div class="form-grid">
+              <label class="field">
+                <span>模型厂商</span>
+                <select id="providerSelect"></select>
+              </label>
+              <label class="field">
+                <span>模型名称</span>
+                <input type="text" id="modelInput" list="modelList" placeholder="如 deepseek-chat">
+                <datalist id="modelList"></datalist>
+              </label>
+              <label class="field span2">
+                <span>API 地址（Base URL）</span>
+                <input type="text" id="baseUrlInput" placeholder="https://api.deepseek.com/v1">
+              </label>
+              <label class="field span2">
+                <span>API Key</span>
+                <input type="password" id="apiKeyInput" placeholder="sk-…">
+              </label>
+              <label class="field">
+                <span>Temperature</span>
+                <input type="number" id="temperatureInput" step="0.1" min="0" max="2">
+              </label>
+              <label class="field">
+                <span>Max Tokens</span>
+                <input type="number" id="maxTokensInput" step="256" min="256">
+              </label>
+            </div>
+            <div class="toolbar">
+              <button class="btn primary" id="saveConfig">保存配置</button>
+              <button class="btn ghost" id="testConnection">测试连接</button>
+              <span class="hint" id="configHint">Key 仅保存在本机</span>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="panel-sub">② 分享设置（可选）</div>
+            <div class="form-grid">
+              <label class="field span2">
+                <span>访问密码（留空则不限制；分享给他人时强烈建议设置）</span>
+                <input type="password" id="accessPassword" placeholder="设置一个密码，他人访问需输入">
+              </label>
+            </div>
+            <div class="toolbar">
+              <button class="btn" id="saveShare">保存分享设置</button>
+            </div>
+            <div class="share-info" id="shareInfo">
+              <div class="share-row"><span>访问方式</span><b id="shareMode">仅本机</b></div>
+              <div class="share-row"><span>本机地址</span><code id="shareLocal"></code></div>
+              <div class="share-row"><span>局域网地址</span><code id="shareLan"></code><button class="mini-btn" id="copyLanUrl">复制</button></div>
+              <div class="share-tip" id="shareTip">如需外网访问，请使用「公网分享.bat」启动（自动生成临时公网网址）</div>
+            </div>
+          </div>
+        </div>
+        <div class="notice">
+          <strong>提示：</strong>想先体验完整流程？勾选左侧「演示模式」，无需任何 Key；分享前务必在②里设置访问密码，避免他人使用你的模型额度。
+        </div>
+        <div class="toolbar">
+          <button class="btn ghost" data-goto="2">← 上一步</button>
+          <span class="spacer"></span>
+          <button class="btn primary" id="toStep4">下一步：资产拆分 →</button>
+        </div>
+      </section>
+
+      <!-- ========== 第 4 步：资产拆分 ========== -->
+      <section class="step-panel" id="step-4">
+        <div class="panel-head">
+          <h2>资产拆分</h2>
+          <p>严格按隔离铁律拆分：人物（核心主角/次要配角/路人NPC群像）、场景、道具完全隔离，动作只取原文，零脑补。</p>
+        </div>
+        <div class="card">
+          <div class="analyze-bar">
+            <button class="btn primary big" id="runAnalyze"><span class="btn-ico">🧩</span> 开始资产拆分</button>
+            <span class="hint" id="analyzeHint">点击后调用所选模型按你的拆分规范执行</span>
+          </div>
+          <div id="analyzeLoading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>AI 正在通读剧本、分级拆解资产…</span>
+          </div>
+          <div id="analyzeProgressWrap" class="progress-wrap hidden">
+            <div class="progress-track"><div class="progress-fill" id="analyzeProgressFill"></div></div>
+            <div class="progress-meta"><span id="analyzeProgressStage">准备中…</span><span id="analyzeProgressPct">0%</span></div>
+          </div>
+        </div>
+
+        <div id="assetSection" class="hidden">
+          <div class="asset-tools">
+            <input type="search" id="assetSearch" placeholder="🔍 搜索资产（名称 / 描述 / 关键词）…">
+            <select id="epViewSelect" class="hidden"></select>
+            <div class="view-toggle">
+              <button class="btn ghost active" id="viewAllAssets">全部资产</button>
+              <button class="btn ghost" id="viewByEpisodes">按集查看（查漏补缺）</button>
+              <button class="btn ghost hidden" id="fillAllEpisodes">✔ 一键补全所有集数</button>
+            </div>
+          </div>
+          <div class="asset-tabs">
+            <button class="tab active" data-tab="character_single">单人人物 <span class="tab-count" id="count-character_single">0</span></button>
+            <button class="tab" data-tab="character_group">群像人物 <span class="tab-count" id="count-character_group">0</span></button>
+            <button class="tab" data-tab="scene">场景 <span class="tab-count" id="count-scene">0</span></button>
+            <button class="tab" data-tab="prop">道具 <span class="tab-count" id="count-prop">0</span></button>
+          </div>
+          <div class="asset-list" id="assetList"></div>
+          <div id="episodeAssetView" class="hidden"></div>
+          <div class="add-asset-bar">
+            <button class="btn ghost" id="addAssetBtn">＋ 手动添加资产</button>
+          </div>
+          <div class="toolbar">
+            <button class="btn ghost" data-goto="3">← 上一步</button>
+            <span class="spacer"></span>
+            <button class="btn primary" id="toStep5">下一步：提示词生成 →</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- ========== 第 5 步：提示词生成 ========== -->
+      <section class="step-panel" id="step-5">
+        <div class="panel-head">
+          <h2>提示词生成</h2>
+          <p>前缀词模板 + 参考词 → 为每个资产生成提示词，并自动执行隔离复检。</p>
+        </div>
+        <div class="card">
+          <div class="panel-sub">前缀词模板（占位符：{style} 风格、{type} 类型、{name} 名称、{description} 描述、{reference} 参考词）</div>
+          <div class="prefix-grid">
+            <label class="field">
+              <span>单人人物</span>
+              <textarea class="prefix-input" data-prefix="character_single" rows="2"></textarea>
+            </label>
+            <label class="field">
+              <span>群像人物</span>
+              <textarea class="prefix-input" data-prefix="character_group" rows="2"></textarea>
+            </label>
+            <label class="field">
+              <span>场景</span>
+              <textarea class="prefix-input" data-prefix="scene" rows="2"></textarea>
+            </label>
+            <label class="field">
+              <span>道具</span>
+              <textarea class="prefix-input" data-prefix="prop" rows="2"></textarea>
+            </label>
+          </div>
+          <div class="toolbar">
+            <button class="btn" id="savePrefix">保存前缀词</button>
+            <span class="spacer"></span>
+            <button class="btn primary big" id="generateAll">⚡ 一键生成全部提示词</button>
+          </div>
+        </div>
+        <div id="promptLoading" class="loading hidden">
+          <div class="spinner"></div>
+          <span>正在逐资产生成提示词…</span>
+        </div>
+        <div class="asset-tools">
+          <input type="search" id="promptSearch" placeholder="🔍 搜索资产（名称 / 描述 / 关键词）…">
+          <div class="view-toggle" id="promptCatTabs">
+            <button class="btn ghost active" data-pcat="all" data-label="全部">全部</button>
+            <button class="btn ghost" data-pcat="character_single" data-label="单人人物">单人人物</button>
+            <button class="btn ghost" data-pcat="character_group" data-label="群像人物">群像人物</button>
+            <button class="btn ghost" data-pcat="scene" data-label="场景">场景</button>
+            <button class="btn ghost" data-pcat="prop" data-label="道具">道具</button>
+          </div>
+        </div>
+        <div class="prompt-asset-list" id="promptAssetList"></div>
+        <div class="toolbar">
+          <button class="btn ghost" data-goto="4">← 上一步</button>
+          <span class="spacer"></span>
+          <button class="btn primary" id="toStep6">下一步：校验与补全 →</button>
+        </div>
+      </section>
+
+      <!-- ========== 第 6 步：校验与补全 ========== -->
+      <section class="step-panel" id="step-6">
+        <div class="panel-head">
+          <h2>校验与补全</h2>
+          <p>AI 对照剧本复查：缺漏、拆分不合理、交叉污染、背景不符；可一键应用建议或手动补全。</p>
+        </div>
+        <div class="card">
+          <div class="analyze-bar">
+            <button class="btn primary big" id="runVerify">🔍 运行校验</button>
+            <span class="hint" id="verifyHint">基于当前资产清单与剧本逐项核对</span>
+          </div>
+          <div id="verifyLoading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>质检员正在核对剧本与资产清单…</span>
+          </div>
+          <div id="verifyProgressWrap" class="progress-wrap hidden">
+            <div class="progress-track"><div class="progress-fill" id="verifyProgressFill"></div></div>
+            <div class="progress-meta"><span id="verifyProgressStage">准备中…</span><span id="verifyProgressPct">0%</span></div>
+          </div>
+        </div>
+        <div id="verifyResult" class="hidden"></div>
+        <div class="toolbar">
+          <button class="btn ghost" data-goto="5">← 上一步</button>
+          <span class="spacer"></span>
+          <button class="btn primary" id="toStep7">下一步：分镜生成 →</button>
+        </div>
+      </section>
+
+      <!-- ========== 第 7 步：分镜生成 ========== -->
+      <section class="step-panel" id="step-7">
+        <div class="panel-head">
+          <h2>分镜生成</h2>
+          <p>按即梦分镜规则生成：台词不改、15 秒分组、镜头绑定台词。支持按「集数 + 第几组」快速浏览。</p>
+        </div>
+        <div class="card">
+          <div class="form-inline">
+            <label class="field ep-field">
+              <span>集数 / 章节（自动识别剧本，可随时切换查看）</span>
+              <select id="episodeSelectMain">
+                <option value="第1集">第1集（待生成）</option>
+              </select>
+            </label>
+            <div class="analyze-bar ep-actions">
+              <button class="btn ghost" id="detectEpisodes">🔍 识别集数</button>
+              <button class="btn primary big" id="runStoryboard">🎞️ 生成当前集分镜</button>
+              <button class="btn ghost" id="runAllStoryboard">生成全部集数</button>
+              <button class="btn ghost" id="viewRules">✏️ 编辑分镜规则</button>
+            </div>
+          </div>
+          <div class="ep-select-block">
+            <div class="ep-check-list" id="epCheckList"></div>
+            <div class="toolbar">
+              <button class="btn primary" id="genSelected">⚡ 生成选中的集数</button>
+              <span class="hint" id="epSelectHint">勾选一个或多个集数后点生成；也可以直接用上面「生成当前集分镜」或「生成全部集数」</span>
+            </div>
+          </div>
+          <div id="storyboardLoading" class="loading hidden">
+            <div class="spinner"></div>
+            <span>正在按规则拆镜、绑定台词、校验时长…</span>
+          </div>
+        </div>
+
+        <div id="storyboardResult" class="hidden">
+          <div class="browser-bar card">
+            <div class="browser-row">
+              <div class="group-chips" id="groupChips"></div>
+              <div class="group-nav">
+                <button class="btn ghost" id="prevGroup">← 上一组</button>
+                <span class="chip" id="groupIndicator">-</span>
+                <button class="btn ghost" id="nextGroup">下一组 →</button>
+              </div>
+            </div>
+            <div class="browser-row">
+              <span class="hint" id="storyboardMeta"></span>
+              <span class="spacer"></span>
+              <button class="btn ghost" id="toggleAllGroups">显示全部组</button>
+              <button class="btn" id="copyStoryboard">复制当前</button>
+              <button class="btn ghost" id="exportStoryboard">导出 .txt</button>
+            </div>
+          </div>
+          <div id="storyboardGroups"></div>
+        </div>
+        <div class="toolbar">
+          <button class="btn ghost" data-goto="6">← 上一步</button>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- 规则弹窗 -->
+  <div class="modal-mask hidden" id="rulesModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>分镜生成规则（可编辑，保存后对后续生成生效）</h3>
+        <button class="modal-close" id="closeRules">×</button>
+      </div>
+      <div class="modal-body">
+        <textarea id="rulesText" rows="18" placeholder="在此编辑分镜生成规则…"></textarea>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" id="resetRules">恢复默认</button>
+        <button class="btn ghost" id="closeRules2">取消</button>
+        <button class="btn primary" id="saveRules">保存规则</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 手动添加资产弹窗 -->
+  <div class="modal-mask hidden" id="addAssetModal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>手动添加资产</h3>
+        <button class="modal-close" id="closeAddAsset">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <label class="field">
+            <span>资产类型</span>
+            <select id="newAssetCategory">
+              <option value="character_single">单人人物</option>
+              <option value="character_group">群像人物</option>
+              <option value="scene">场景</option>
+              <option value="prop">道具</option>
+            </select>
+          </label>
+          <label class="field">
+            <span>资产名称</span>
+            <input type="text" id="newAssetName" placeholder="如：林晓">
+          </label>
+          <label class="field span2">
+            <span>视觉描述（用于生成提示词）</span>
+            <textarea id="newAssetDesc" rows="3" placeholder="只描述该资产本身，遵守隔离规则…"></textarea>
+          </label>
+          <label class="field span2">
+            <span>隔离关键词（逗号分隔）</span>
+            <input type="text" id="newAssetKeywords" placeholder="如：白衬衫,短发,青年">
+          </label>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" id="cancelAddAsset">取消</button>
+        <button class="btn primary" id="confirmAddAsset">添加</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自定义改写分镜弹窗 -->
+  <div class="modal-mask hidden" id="shotModal">
+    <div class="modal modal-lg">
+      <div class="modal-head">
+        <h3 id="shotModalTitle">自定义改写分镜</h3>
+        <button class="modal-close" id="closeShot">×</button>
+      </div>
+      <div class="modal-body">
+        <div class="panel-sub">当前组内容（参考）</div>
+        <pre class="shot-current" id="shotCurrent"></pre>
+        <div class="panel-sub">粘贴你自己的分镜草稿（位置 / 动作 / 台词，系统会按规则优化成规范提示词）</div>
+        <textarea id="shotInput" rows="6" placeholder="例如：白天，出租屋内，林默坐在地上，背靠画面左侧床沿，斜对面橘猫在吃猫粮。橘猫：八十万而已，只要你听我的，不算什么大问题。（正面近景，边吃边说）"></textarea>
+        <div class="toolbar">
+          <button class="btn primary" id="genShotPrompt">✨ 生成分镜提示词</button>
+          <span class="hint">台词会一字不改保留；不写台词则该组无台词栏</span>
+        </div>
+        <div id="shotLoading" class="loading hidden">
+          <div class="spinner"></div>
+          <span>正在按规则优化你的分镜草稿…</span>
+        </div>
+        <div id="shotResult" class="hidden">
+          <div class="panel-sub">生成结果（可直接复制或替换该组）</div>
+          <pre class="shot-result" id="shotResultText"></pre>
+        </div>
+      </div>
+      <div class="modal-foot">
+        <button class="btn ghost" id="closeShot2">取消</button>
+        <button class="btn ghost" id="copyShotResult">复制结果</button>
+        <button class="btn primary" id="replaceGroup">替换该组</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="toast" class="toast hidden"></div>
+  <script src="static/js/prompts.js?v=2.2"></script>
+  <script src="static/js/app.js?v=2.2"></script>
+</body>
+</html>
