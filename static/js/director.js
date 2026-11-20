@@ -31,6 +31,7 @@
   let activeGroupIndex = 0;
   let activeShotId = "";
   let currentReferenceType = "character";
+  let referenceQuery = "";
   let saveTimer = null;
   let toastTimer = null;
   let generationRun = null;
@@ -622,20 +623,23 @@
     $("#groupCounter").textContent = (activeGroupIndex + 1) + " / " + episode.groups.length;
   }
 
-  function shotCardMarkup(shot) {
-    const image = shot.references.find((reference) => ["scene", "character", "prop"].includes(reference.type));
+  function shotSheetRowMarkup(shot, index) {
     const preview = shot.visual || shot.prompt || "尚未填写画面内容";
+    const referenceCount = shot.references.length;
+    const referenceSummary = shot.references
+      .map((reference) => ({ character: "人物", scene: "场景", prop: "道具" })[reference.type] || "参考")
+      .filter((type, typeIndex, types) => types.indexOf(type) === typeIndex)
+      .join(" / ");
     return (
-      '<button class="shot-card' + (shot.id === activeShotId ? " active" : "") + '" type="button" data-shot-id="' + escapeHtml(shot.id) + '" draggable="true" aria-pressed="' + (shot.id === activeShotId) + '">' +
-        '<span class="shot-card-thumb' + (image ? " has-image" : "") + '"' + (image ? ' style="background-image:url(\'' + escapeHtml(image.dataUrl) + '\')"' : "") + '>' +
-          (image ? '<span class="shot-thumb-label">参考 · ' + escapeHtml(image.name) + '</span>' : '<svg><use href="#i-film"></use></svg>') +
-        '</span>' +
-        '<span class="shot-card-body">' +
-          '<span class="shot-card-head"><strong>SHOT ' + String(shot.shotNo || 1).padStart(2, "0") + '</strong><span>' + escapeHtml(shot.size) + " · " + escapeHtml(shot.duration) + 's</span></span>' +
-          '<p>' + escapeHtml(preview) + '</p>' +
-          (shot.dialogue ? '<span class="shot-dialogue"><b>台词</b> · ' + escapeHtml(shot.dialogue) + '</span>' : '<span class="shot-dialogue">' + escapeHtml(shot.movement) + " · " + escapeHtml(shot.angle) + '</span>') +
-        '</span>' +
-      '</button>'
+      '<div class="shot-sheet-row' + (shot.id === activeShotId ? " active" : "") + '" role="row" tabindex="0" data-shot-id="' + escapeHtml(shot.id) + '" draggable="true" aria-selected="' + (shot.id === activeShotId) + '">' +
+        '<div class="shot-sheet-no" role="cell"><span class="shot-drag-handle" aria-hidden="true">⠿</span><small>SHOT</small><b>' + String(index + 1).padStart(2, "0") + '</b></div>' +
+        '<div class="shot-sheet-lens" role="cell"><strong>' + escapeHtml(shot.size) + '</strong><span>' + escapeHtml(shot.angle) + '</span><em>' + escapeHtml(shot.movement) + '</em></div>' +
+        '<div class="shot-sheet-duration" role="cell"><b>' + escapeHtml(shot.duration) + '</b><span>秒</span></div>' +
+        '<div class="shot-sheet-visual" role="cell"><p>' + escapeHtml(preview) + '</p>' + (referenceCount ? '<small>' + escapeHtml(referenceSummary) + '参考 ' + referenceCount + ' 张</small>' : '<small class="muted">无参考图</small>') + '</div>' +
+        '<div class="shot-sheet-dialogue" role="cell">' + (shot.dialogue ? '<b>台词</b><p>' + escapeHtml(shot.dialogue) + '</p>' : '<span>无台词 · 以动作和视线承接</span>') + '</div>' +
+        '<div class="shot-sheet-light" role="cell"><p>' + escapeHtml(shot.lighting || "未填写光影") + '</p><small>' + escapeHtml(shot.effects || "无明显特效") + '</small></div>' +
+        '<div class="shot-sheet-prompt" role="cell"><p>' + escapeHtml(shot.prompt || "尚未填写最终提示词，请在右侧补充或重新生成。") + '</p><span aria-hidden="true">↗</span></div>' +
+      '</div>'
     );
   }
 
@@ -646,8 +650,17 @@
     $("#groupLocationInput").value = group.location || "";
     $("#groupEmotionInput").value = group.emotion || "";
     $("#groupDurationInput").value = group.duration || totalDuration(group.shots);
-    $("#shotGrid").innerHTML = group.shots.map(shotCardMarkup).join("") +
-      '<button class="shot-card-empty" type="button" data-action="add-shot">+ 增加一个镜头</button>';
+    const referenceCount = group.shots.reduce((count, shot) => count + shot.references.length, 0);
+    $("#shotGrid").innerHTML =
+      '<div class="shot-sequence-head">' +
+        '<div class="shot-sequence-title"><span>DIRECTOR SHEET / 连续导演分镜表</span><strong>' + escapeHtml(group.title) + '</strong></div>' +
+        '<div class="shot-sequence-actions"><p>' + group.shots.length + ' 镜 · ' + totalDuration(group.shots).toFixed(1).replace(/\.0$/, "") + ' 秒 · ' + referenceCount + ' 张参考图</p><button type="button" class="sheet-copy-button" data-copy-group><svg><use href="#i-copy"></use></svg>复制本组提示词</button></div>' +
+      '</div>' +
+      '<div class="shot-sheet-columns" role="row" aria-hidden="true">' +
+        '<span>镜号</span><span>景别 / 角度 / 运镜</span><span>时长</span><span>画面与动作</span><span>台词</span><span>光影 / 环境</span><span>最终分镜提示词</span>' +
+      '</div>' +
+      '<div class="shot-sheet-body" role="rowgroup">' + group.shots.map(shotSheetRowMarkup).join("") + '</div>' +
+      '<button class="shot-sheet-add" type="button" data-action="add-shot"><svg><use href="#i-plus"></use></svg>在这组末尾增加镜头，保持整组连续</button>';
     renderTimeline(group);
     if (!group.shots.some((shot) => shot.id === activeShotId)) {
       activeShotId = group.shots[0] ? group.shots[0].id : "";
@@ -684,14 +697,42 @@
 
   function renderReferences(shot) {
     const list = $("#referenceList");
-    if (!shot || !shot.references.length) {
-      list.innerHTML = '<span class="reference-empty">尚未添加参考图</span>';
+    const refs = shot ? shot.references : [];
+    const typeLabel = { character: "人物", scene: "场景", prop: "道具" };
+    const counts = {
+      character: refs.filter((reference) => reference.type === "character").length,
+      scene: refs.filter((reference) => reference.type === "scene").length,
+      prop: refs.filter((reference) => reference.type === "prop").length,
+    };
+    $("#referenceTypeTabs").innerHTML = ["character", "scene", "prop"].map((type) =>
+      '<button type="button" class="' + (type === currentReferenceType ? "active" : "") + '" data-ref-type="' + type + '">' +
+        typeLabel[type] + '<span>' + counts[type] + '</span>' +
+      '</button>'
+    ).join("");
+    if (!shot) {
+      list.innerHTML = '<span class="reference-empty">选择镜头后管理参考资产</span>';
       return;
     }
-    const typeLabel = { character: "人物", scene: "场景", prop: "道具" };
-    list.innerHTML = shot.references.map((reference) =>
-      '<div class="reference-thumb"><img src="' + escapeHtml(reference.dataUrl) + '" alt="' + escapeHtml(reference.name) + '"><span>' + escapeHtml(typeLabel[reference.type] || "参考") + '</span><button type="button" data-remove-reference="' + escapeHtml(reference.id) + '" aria-label="删除参考图"><svg><use href="#i-close"></use></svg></button></div>'
-    ).join("");
+    const normalizedQuery = referenceQuery.trim().toLowerCase();
+    const visibleReferences = refs.filter((reference) =>
+      reference.type === currentReferenceType &&
+      (!normalizedQuery || reference.name.toLowerCase().includes(normalizedQuery))
+    );
+    list.innerHTML = visibleReferences.map((reference) =>
+      '<div class="reference-thumb">' +
+        '<div class="reference-thumb-image"><img src="' + escapeHtml(reference.dataUrl) + '" alt="' + escapeHtml(reference.name) + '"><span>' + escapeHtml(typeLabel[reference.type] || "参考") + '</span></div>' +
+        '<div class="reference-thumb-copy"><strong title="' + escapeHtml(reference.name) + '">' + escapeHtml(reference.name) + '</strong><small>已关联 · 生成时作为视觉依据</small></div>' +
+        '<button type="button" data-remove-reference="' + escapeHtml(reference.id) + '" aria-label="删除 ' + escapeHtml(reference.name) + '"><svg><use href="#i-close"></use></svg></button>' +
+      '</div>'
+    ).join("") +
+    '<button type="button" class="reference-add-tile" data-add-reference>' +
+      '<svg><use href="#i-image"></use></svg>' +
+      '<span>添加' + escapeHtml(typeLabel[currentReferenceType]) + '参考图</span>' +
+      '<small>JPG / PNG / WEBP</small>' +
+    '</button>';
+    if (!visibleReferences.length && normalizedQuery) {
+      list.insertAdjacentHTML("afterbegin", '<span class="reference-empty">当前分类没有匹配“' + escapeHtml(referenceQuery.trim()) + '”的资产。</span>');
+    }
   }
 
   function renderGenerationState() {
@@ -711,16 +752,25 @@
       : generationRun && generationRun.summary
         ? generationRun.summary
         : "";
+    const percent = running ? generationRun.percent : 0;
+    $("#generationOverlayPercent").textContent = percent + "%";
+    $("#generationOverlayProgress").style.width = percent + "%";
+    $("#generationOverlayStage").textContent = running ? generationRun.stage : "等待开始生成";
   }
 
-  function updateGenerationProgress(stage, completed, total) {
+  function updateGenerationProgress(stage, completed, total, ticks) {
     if (!generationRun) return;
     generationRun.stage = stage;
     generationRun.completed = completed;
     generationRun.total = total;
-    generationRun.percent = total ? Math.round((completed / total) * 100) : 0;
+    const base = total ? Math.round((completed / total) * 100) : 0;
+    const working = Math.min(14, 4 + Math.max(0, ticks || 0) * 2);
+    generationRun.percent = completed >= total ? 100 : Math.min(94, base + working);
     $("#generationOverlayTitle").textContent = stage;
     $("#generationOverlayMeta").textContent = "已完成 " + completed + " / " + total + " 集 · 单集失败不会阻塞其他集";
+    $("#generationOverlayPercent").textContent = generationRun.percent + "%";
+    $("#generationOverlayProgress").style.width = generationRun.percent + "%";
+    $("#generationOverlayStage").textContent = stage;
     renderGenerationState();
   }
 
@@ -994,17 +1044,18 @@
     }
   }
 
+  function configuredStoryboardRules(maxLength) {
+    return String(state.rules || P.rules || "").trim().slice(0, maxLength || 14000);
+  }
+
   function directorSystemPrompt(groupStart, groupCount, segmentNote) {
-    const configurableRules = String(state.rules || P.rules || "")
-      .split(/\r?\n/)
-      .filter((line) => !/固定输出格式|输出格式|严格\s*JSON|Markdown|代码块|```|直接输出优化后的分镜结果|第X组\s*\/|镜头N\s*\//i.test(line))
-      .join("\n")
-      .slice(0, 14000);
+    const configurableRules = configuredStoryboardRules(16000);
     return [
       "你是 AI 漫剧导演级分镜师。你只处理当前提供的一集剧本，绝对禁止混入其他集数内容。",
-      "【输出协议优先级最高】无论下方配置要求使用何种格式，本次都必须只返回可解析的 JSON。不得返回 Markdown、代码块、标题栏、解释或 JSON 之外的任何文字。",
+      "【用户配置优先级最高】下方是用户导入或保存的分镜提示词配置。镜头语言、景别、运镜、时长、台词绑定、主体控制、环境动态、即梦适配和画面措辞均以该配置为准。若它与内置导演风格有差异，优先执行用户配置。",
+      "【输出协议】用户配置中的“固定输出格式”用于定义每组、每镜必须表达的内容和语言顺序；为接入导演台数据结构，请把这些内容完整映射到指定 JSON 字段。最终只返回可解析 JSON，不得返回 Markdown、代码块、解释或 JSON 之外的文字。",
       "",
-      "【用户配置中的导演与镜头要求】",
+      "【用户导入的分镜提示词配置】",
       configurableRules,
       "",
       "【导演台结构约束】",
@@ -1021,20 +1072,17 @@
   }
 
   function shotRewriteSystemPrompt() {
-    const configurableRules = String(state.rules || P.rules || "")
-      .split(/\r?\n/)
-      .filter((line) => !/固定输出格式|输出格式|严格\s*JSON|Markdown|代码块|```|直接输出优化后的分镜结果|第X组\s*\/|镜头N\s*\//i.test(line))
-      .join("\n")
-      .slice(0, 10000);
+    const configurableRules = configuredStoryboardRules(12000);
     return [
       "你是 AI 漫剧导演级分镜师，本次只改写一个已有镜头。",
-      "【输出协议优先级最高】只返回一个可解析的 JSON 对象，不得返回 Markdown、代码块、解释或 JSON 之外的任何文字。",
+      "【用户配置优先级最高】用户导入的分镜配置决定镜头表达、主体控制、环境动态、时长和提示词写法；若与内置风格有差异，以用户配置为准。",
+      "【输出协议】只返回一个可解析的 JSON 对象。用户配置中的画面字段和输出内容必须完整映射进 JSON，不得返回 Markdown、代码块、解释或 JSON 之外的任何文字。",
       "必须保留当前镜头的 shotNo 与原台词；原台词一个字都不能改，不得概括、删减或新增。",
       "只允许替换本镜头的景别、角度、运镜、时长、画面、光影、环境动态与最终分镜提示词。",
       "尊重用户对参考图类型、人物、场景与道具的使用意图；若用户要求使用参考图，以图片中的造型和空间关系为视觉依据。",
       "本次输出不得包含 groups 数组，不得返回其他镜头。",
       "",
-      "【用户配置中的导演与镜头要求】",
+      "【用户导入的分镜提示词配置】",
       configurableRules,
       "",
       "【最终输出格式：必须严格匹配】",
@@ -1141,11 +1189,24 @@
     });
   }
 
-  function validateEpisodeGroups(groups) {
+  function validateEpisodeGroups(groups, episode) {
     const notes = [];
     if (groups.length < MIN_GROUPS || groups.length > MAX_GROUPS) notes.push("组数 " + groups.length + "（目标 8–15）");
     if (groups.some((group) => group.shots.length < MIN_SHOTS || group.shots.length > MAX_SHOTS)) notes.push("部分组镜数不在 4–6");
     if (groups.some((group) => totalDuration(group.shots) > MAX_GROUP_SECONDS + 0.01)) notes.push("部分组超过 15 秒");
+    if (groups.some((group) => group.shots.some((shot) => !shot.visual.trim() || !shot.prompt.trim()))) notes.push("存在画面或最终提示词为空的镜头");
+    const prompts = groups.flatMap((group) => group.shots.map((shot) => shot.prompt.trim()).filter(Boolean));
+    if (new Set(prompts).size !== prompts.length) notes.push("存在重复的分镜提示词");
+    if (episode) {
+      const generatedDialogue = dialogueSequence(groups);
+      const sourceLines = String(episode.script || "")
+        .split(/\r?\n/)
+        .map((line) => line.trim())
+        .filter((line) => /^[^：:\n]{1,24}[：:]\s*\S+/.test(line));
+      if (sourceLines.length && !dialogueSequenceEqual(generatedDialogue, sourceLines)) {
+        notes.push("台词顺序或完整性与原剧本不一致");
+      }
+    }
     return notes.join("；");
   }
 
@@ -1204,7 +1265,23 @@
     return { data, repaired: false, issue };
   }
 
-  async function requestStoryboardForEpisode(episode, provider, providerId, signal, progress) {
+  function episodeReferenceImages(episode, limit) {
+    const seen = new Set();
+    const references = [];
+    (episode.groups || []).forEach((group) => {
+      (group.shots || []).forEach((shot) => {
+        (shot.references || []).forEach((reference) => {
+          const key = reference.id || reference.dataUrl;
+          if (!key || seen.has(key) || !reference.dataUrl) return;
+          seen.add(key);
+          references.push(reference);
+        });
+      });
+    });
+    return references.slice(0, limit || 8);
+  }
+
+  async function requestStoryboardForEpisode(episode, provider, providerId, signal, progress, config) {
     if (providerId === "demo") {
       await sleep(650);
       progress("正在用本地演示编排镜头");
@@ -1218,6 +1295,13 @@
     const chunkCount = shouldChunk ? Math.min(4, Math.ceil(episode.script.length / 18000)) : 1;
     const chunks = splitScriptForModel(episode.script, chunkCount);
     const allGroups = [];
+    const references = episodeReferenceImages(episode, 8);
+    const referenceType = { character: "人物", scene: "场景", prop: "道具" };
+    const referenceManifest = references.length
+      ? references.map((reference, index) =>
+          "图" + (index + 1) + "=" + (referenceType[reference.type] || "参考") + ":" + reference.name
+        ).join("；")
+      : "无";
 
     for (let index = 0; index < chunks.length; index += 1) {
       const remainingChunks = chunks.length - index;
@@ -1236,13 +1320,35 @@
         "制作画幅：" + (state.project.format === "vertical" ? "9:16 竖屏" : "16:9 横屏"),
         shouldChunk ? "这是本集的第 " + (index + 1) + " / " + chunks.length + " 段。只写本段内容，不要补写其他段，不要混入其他集。" : "以下是本集完整剧本。",
         "",
+        "【必须执行：用户导入的分镜提示词配置｜优先级高于内置风格】",
+        configuredStoryboardRules(12000),
+        "【配置结束】",
+        "",
+        "【本集视觉参考】",
+        referenceManifest,
+        references.length
+          ? "参考边界：场景图只控制空间、建筑、陈设、时间与光线；人物图只控制脸型、发型、服装与造型；道具图只控制轮廓、材质与细节。不得让某类参考越界控制其他内容。"
+          : "本集没有关联参考图，按文字剧本生成。",
+        references.length && config && config.vision
+          ? "附图已随请求发送。每个镜头的最终提示词必须具体体现对应参考图中可观察的视觉特征，不能只写“参考图片”。"
+          : "当前未开启视觉模型图片发送；图片只作为本集资产关联信息。",
+        "",
         "剧本内容：",
         chunks[index],
       ].join("\n");
+      const userContent = references.length && config && config.vision
+        ? [
+            { type: "text", text: userText },
+            ...references.map((reference) => ({
+              type: "image_url",
+              image_url: { url: reference.dataUrl },
+            })),
+          ]
+        : userText;
       const raw = await requestModel(provider, {
         messages: [
           { role: "system", content: directorSystemPrompt(start, count, shouldChunk ? "本段" : "本集") },
-          { role: "user", content: userText },
+          { role: "user", content: userContent },
         ],
         maxTokens: providerId === "demo" ? 4000 : provider.max_tokens,
         temperature: 0.72,
@@ -1331,19 +1437,20 @@
     run.controllers.set(episode.id, controller);
     const progress = (message) => {
       const index = run.episodes.indexOf(episode);
-      updateGenerationProgress(episode.name + " · " + message, run.completed, run.total);
+      run.ticks = (run.ticks || 0) + 1;
+      updateGenerationProgress(episode.name + " · " + message, run.completed, run.total, run.ticks);
       if (index === -1) return;
     };
     try {
       const data = await requestStoryboardForEpisode(episode, {
         ...provider,
         max_tokens: config.max_tokens,
-      }, providerId, controller.signal, progress);
+      }, providerId, controller.signal, progress, config);
       if (run.cancelled) throw new DOMException("已取消", "AbortError");
       const groups = renumberGroups(normalizeStoryboardData(data));
       if (!groups.length) throw new Error("模型未生成有效镜头组。");
       episode.groups = groups;
-      episode.validation = validateEpisodeGroups(groups);
+      episode.validation = validateEpisodeGroups(groups, episode);
       episode.status = "generated";
       episode.updatedAt = new Date().toISOString();
       episode.error = episode.validation ? "提示：" + episode.validation : "";
@@ -1392,14 +1499,17 @@
       completed: 0,
       total: episodes.length,
       failed: 0,
-      percent: 0,
+      percent: 4,
       stage: "准备拆分镜头",
       summary: "",
     };
     generationRun = run;
+    document.body.classList.add("is-generating");
     $("#generationOverlay").hidden = false;
     $("#generationOverlayTitle").textContent = "开始编排 " + episodes.length + " 集";
     $("#generationOverlayMeta").textContent = "每集独立请求，最多同时处理 2 集";
+    $("#generationOverlayPercent").textContent = "0%";
+    $("#generationOverlayStage").textContent = "锁定集数边界与用户分镜配置";
     renderGenerationState();
 
     const worker = async () => {
@@ -1425,23 +1535,30 @@
       }
     };
 
-    await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT_EPISODES, episodes.length) }, worker));
-    run.summary = run.cancelled
-      ? "已停止：完成 " + run.completed + " / " + run.total + " 集"
-      : "本次完成 " + (run.total - run.failed) + " 集" + (run.failed ? "，" + run.failed + " 集失败，可单集重试" : "");
-    $("#generationOverlay").hidden = true;
-    $("#generationOverlayTitle").textContent = "编排完成";
-    $("#generationOverlayMeta").textContent = run.summary;
-    generationRun = null;
-    const firstGenerated = episodes.find((episode) => episode.status === "generated");
-    if (firstGenerated) {
-      state.activeEpisodeId = firstGenerated.id;
-      activeGroupIndex = 0;
-      activeShotId = firstGenerated.groups[0] && firstGenerated.groups[0].shots[0] ? firstGenerated.groups[0].shots[0].id : "";
+    try {
+      await Promise.all(Array.from({ length: Math.min(MAX_CONCURRENT_EPISODES, episodes.length) }, worker));
+      run.summary = run.cancelled
+        ? "已停止：完成 " + run.completed + " / " + run.total + " 集"
+        : "本次完成 " + (run.total - run.failed) + " 集" + (run.failed ? "，" + run.failed + " 集失败，可单集重试" : "");
+    } catch (error) {
+      run.summary = "生成中断：" + modelErrorMessage(error);
+      run.failed += 1;
+    } finally {
+      $("#generationOverlay").hidden = true;
+      $("#generationOverlayTitle").textContent = "编排完成";
+      $("#generationOverlayMeta").textContent = run.summary;
+      document.body.classList.remove("is-generating");
+      generationRun = null;
+      const firstGenerated = episodes.find((episode) => episode.status === "generated");
+      if (firstGenerated) {
+        state.activeEpisodeId = firstGenerated.id;
+        activeGroupIndex = 0;
+        activeShotId = firstGenerated.groups[0] && firstGenerated.groups[0].shots[0] ? firstGenerated.groups[0].shots[0].id : "";
+      }
+      saveProject(true);
+      renderWorkspace();
+      if (window.innerWidth <= 720 && firstGenerated) setMobileView("groups");
     }
-    saveProject(true);
-    renderWorkspace();
-    if (window.innerWidth <= 720 && firstGenerated) setMobileView("groups");
     showToast(run.summary, run.failed > 0);
   }
 
@@ -1550,6 +1667,93 @@
     activeShotId = clone.shots[0] ? clone.shots[0].id : "";
     saveProject();
     renderWorkspace();
+  }
+
+  function formatGroupPromptText(group, episode) {
+    const referenceType = { character: "人物", scene: "场景", prop: "道具" };
+    const format = state.project.format === "vertical" ? "9:16 竖屏" : "16:9 横屏";
+    const seenReferences = new Set();
+    const references = group.shots.flatMap((shot) => shot.references || []).filter((reference) => {
+      const key = reference.id || reference.dataUrl;
+      if (!key || seenReferences.has(key)) return false;
+      seenReferences.add(key);
+      return true;
+    });
+    const referenceText = references.length
+      ? references.map((reference, index) =>
+          "图" + (index + 1) + "｜" + (referenceType[reference.type] || "参考") + "｜" + reference.name + (reference.note ? "｜" + reference.note : "")
+        ).join("\n")
+      : "无";
+    const shotText = group.shots.map((shot, index) => [
+      "镜头 " + String(index + 1).padStart(2, "0"),
+      "景别：" + (shot.size || "未填写") + "｜角度：" + (shot.angle || "未填写") + "｜运镜：" + (shot.movement || "未填写") + "｜时长：" + shot.duration + "秒",
+      "画面：" + (shot.visual || "未填写"),
+      "台词：" + (shot.dialogue || "无台词"),
+      "光影：" + (shot.lighting || "未填写"),
+      "特效/环境动态：" + (shot.effects || "无明显特效"),
+      "最终提示词：" + (shot.prompt || "未填写"),
+    ].join("\n")).join("\n\n");
+    return [
+      "AI 漫剧分镜提示词",
+      "项目：" + (state.project.name || "未命名项目"),
+      "集数：" + (episode ? episode.name : "未选择"),
+      "镜头组：" + group.title,
+      "画幅：" + format,
+      "位置状态与场景：" + (group.location || "未填写"),
+      "本组情绪重点：" + (group.emotion || "未填写"),
+      "本组总时长：" + totalDuration(group.shots).toFixed(1).replace(/\.0$/, "") + "秒",
+      "",
+      "【整组镜头】",
+      shotText,
+      "",
+      "【本组参考资产】",
+      referenceText,
+      references.length ? "使用边界：场景只锁空间与光线，人物只锁造型与服装，道具只锁轮廓、材质和细节；不得越界添加未要求的主体。" : "",
+      "",
+      "【整组连续性要求】",
+      "保持人物造型、服装、空间方向、视线关系、动作起止与光影连续；镜头之间使用自然剪辑衔接，不改变原台词。",
+    ].join("\n");
+  }
+
+  async function copyPlainText(text) {
+    if (navigator.clipboard && window.isSecureContext) {
+      await navigator.clipboard.writeText(text);
+      return;
+    }
+    const textarea = document.createElement("textarea");
+    textarea.value = text;
+    textarea.setAttribute("readonly", "");
+    textarea.style.position = "fixed";
+    textarea.style.opacity = "0";
+    document.body.appendChild(textarea);
+    textarea.select();
+    const copied = document.execCommand("copy");
+    textarea.remove();
+    if (!copied) throw new Error("浏览器未允许写入剪贴板。");
+  }
+
+  async function copyCurrentGroupPrompt() {
+    const group = getActiveGroup();
+    const episode = getEpisode();
+    if (!group) return;
+    const buttons = $$("[data-copy-group]");
+    const originals = buttons.map((button) => button.innerHTML);
+    try {
+      await copyPlainText(formatGroupPromptText(group, episode));
+      buttons.forEach((button) => {
+        button.classList.add("copied");
+        button.innerHTML = '<svg><use href="#i-scan"></use></svg>已复制本组提示词';
+      });
+      window.setTimeout(() => {
+        buttons.forEach((button, index) => {
+          button.classList.remove("copied");
+          button.innerHTML = originals[index];
+        });
+      }, 1800);
+      showToast("已复制“" + group.title + "”的整组分镜提示词，可直接粘贴到外部工具。");
+    } catch (error) {
+      showToast(error.message || "复制失败，请检查浏览器剪贴板权限。", true);
+    }
   }
 
   function duplicateEpisode() {
@@ -1683,8 +1887,13 @@
         prompt: shot.prompt,
       },
       directorIdea: idea,
-      rewriteMode: mode === "references" ? "只依据参考图重生成当前镜头" : "依据导演修改想法重写当前镜头",
-      references: shot.references.map((reference) => ({ type: reference.type, name: reference.name })),
+      rewriteMode: mode === "references" ? "依据参考图重生成当前镜头" : "依据导演修改想法重写当前镜头",
+      references: shot.references.map((reference, index) => ({
+        imageNo: index + 1,
+        type: reference.type,
+        name: reference.name,
+        note: reference.note || "",
+      })),
     };
     const text = [
       "只改写并返回一个镜头，不要动其他镜头。",
@@ -1692,7 +1901,11 @@
       (mode === "references"
         ? "请以所附参考图为视觉依据，重新设计当前镜头；保留未被要求修改的叙事信息。"
         : "请按导演修改想法重新设计当前镜头；保留未被要求修改的叙事信息。"),
-      "用户参考图类型：" + (shot.references.map((reference) => reference.type + ":" + reference.name).join("、") || "无"),
+      "附件图片与文本的对应顺序：" + (shot.references.map((reference, index) =>
+        "图" + (index + 1) + "=" + ({ character: "人物", scene: "场景", prop: "道具" })[reference.type] + ":" + reference.name
+      ).join("；") || "无"),
+      "参考图使用边界：场景图只用于空间结构、建筑、陈设、时间与光线氛围；人物图只用于角色脸型、发型、服装与造型；道具图只用于材质、轮廓与细节。不要因为某张参考图而引入未要求的其他主体。",
+      "如果附带了参考图，最终画面和最终分镜提示词必须明确体现参考图中的视觉特征，而不是只在说明中提到参考过图片。",
       "当前上下文：" + JSON.stringify(context),
       "请输出 JSON：{\"shot\":{\"shotNo\":1,\"size\":\"\",\"angle\":\"\",\"movement\":\"\",\"duration\":3,\"visual\":\"\",\"dialogue\":\"\",\"lighting\":\"\",\"effects\":\"\",\"prompt\":\"完整分镜提示词\"}}",
     ].join("\n");
@@ -1730,11 +1943,15 @@
     const button = $("#" + (mode === "references" ? "regenerateWithReferences" : "rewriteShot"));
     rewriteController = new AbortController();
     button.disabled = true;
+    document.body.classList.add("is-generating");
     $("#generationOverlay").hidden = false;
     $("#generationOverlayTitle").textContent = mode === "references" ? "正在读取参考图" : "正在重写当前镜头";
     $("#generationOverlayMeta").textContent = mode === "references"
       ? "锁定原台词，依据人物、场景与道具参考图重构这一镜"
       : "保留台词与环境连续性，只替换这一镜";
+    $("#generationOverlayPercent").textContent = "18%";
+    $("#generationOverlayProgress").style.width = "18%";
+    $("#generationOverlayStage").textContent = mode === "references" ? "分析场景结构与角色造型" : "读取导演修改意图";
     $("#shotSaveStatus").textContent = mode === "references" ? "正在按参考图重生成…" : "正在重写…";
     try {
       let result;
@@ -1793,6 +2010,7 @@
     } finally {
       rewriteController = null;
       button.disabled = false;
+      document.body.classList.remove("is-generating");
       $("#generationOverlay").hidden = true;
       $("#shotSaveStatus").textContent = "修改自动保存";
     }
@@ -1892,7 +2110,7 @@
     let dragData = null;
     document.addEventListener("dragstart", (event) => {
       const groupTab = event.target.closest(".group-tab");
-      const shotCard = event.target.closest(".shot-card");
+      const shotCard = event.target.closest(".shot-sheet-row");
       if (groupTab) {
         dragData = { type: "group", index: Number(groupTab.dataset.groupIndex) };
         groupTab.style.opacity = ".5";
@@ -1906,13 +2124,13 @@
       }
     });
     document.addEventListener("dragend", (event) => {
-      const target = event.target.closest(".group-tab, .shot-card");
+      const target = event.target.closest(".group-tab, .shot-sheet-row");
       if (target) target.style.opacity = "";
       dragData = null;
     });
     document.addEventListener("dragover", (event) => {
       if (!dragData) return;
-      const target = dragData.type === "group" ? event.target.closest(".group-tab") : event.target.closest(".shot-card");
+      const target = dragData.type === "group" ? event.target.closest(".group-tab") : event.target.closest(".shot-sheet-row");
       if (target) event.preventDefault();
     });
     document.addEventListener("drop", (event) => {
@@ -1922,7 +2140,7 @@
         const target = event.target.closest(".group-tab");
         if (target) reorderByDrag("group", dragData.index, Number(target.dataset.groupIndex));
       } else {
-        const target = event.target.closest(".shot-card");
+        const target = event.target.closest(".shot-sheet-row");
         const group = getActiveGroup();
         if (target && group) {
           const toIndex = group.shots.findIndex((shot) => shot.id === target.dataset.shotId);
@@ -2104,7 +2322,10 @@
     $("#addGroup").addEventListener("click", addGroup);
     $("#deleteGroup").addEventListener("click", deleteCurrentGroup);
     $("#addShot").addEventListener("click", addShot);
-    $("#copyGroup").addEventListener("click", duplicateGroup);
+    $("#copyGroupPrompt").addEventListener("click", copyCurrentGroupPrompt);
+    $("#copyGroupPromptTop").addEventListener("click", copyCurrentGroupPrompt);
+    $("#generationOverlayCancel").addEventListener("click", cancelGeneration);
+    $("#duplicateGroup").addEventListener("click", duplicateGroup);
     $("#copyEpisode").addEventListener("click", duplicateEpisode);
     $("#shotGrid").addEventListener("click", (event) => {
       const empty = event.target.closest('[data-action="add-shot"]');
@@ -2112,11 +2333,23 @@
         addShot();
         return;
       }
+      const copy = event.target.closest("[data-copy-group]");
+      if (copy) {
+        copyCurrentGroupPrompt();
+        return;
+      }
       const card = event.target.closest("[data-shot-id]");
       if (!card) return;
       activeShotId = card.dataset.shotId;
       renderGroup();
       if (window.innerWidth <= 980) setMobileView("detail");
+    });
+    $("#shotGrid").addEventListener("keydown", (event) => {
+      const row = event.target.closest(".shot-sheet-row");
+      if (row && (event.key === "Enter" || event.key === " ")) {
+        event.preventDefault();
+        row.click();
+      }
     });
     ["groupTitleInput", "groupLocationInput", "groupEmotionInput", "groupDurationInput"].forEach((id) => {
       $("#" + id).addEventListener("input", () => {
@@ -2156,11 +2389,19 @@
       const button = event.target.closest("[data-ref-type]");
       if (!button) return;
       currentReferenceType = button.dataset.refType;
-      $$("#referenceTypeTabs button").forEach((tab) => tab.classList.toggle("active", tab === button));
+      renderReferences(getActiveShot());
+    });
+    $("#referenceSearch").addEventListener("input", (event) => {
+      referenceQuery = event.target.value || "";
+      renderReferences(getActiveShot());
     });
     $("#referenceList").addEventListener("click", (event) => {
       const remove = event.target.closest("[data-remove-reference]");
-      if (remove) removeReference(remove.dataset.removeReference);
+      if (remove) {
+        removeReference(remove.dataset.removeReference);
+        return;
+      }
+      if (event.target.closest("[data-add-reference]")) $("#referenceFile").click();
     });
     $("#mobileBackToEpisodes").addEventListener("click", () => setMobileView("episodes"));
     $("#mobileBackToShots").addEventListener("click", () => setMobileView("groups"));

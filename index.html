@@ -5,7 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0e0d0c">
   <title>AI 漫剧导演台</title>
-  <link rel="stylesheet" href="static/css/director.css?v=1.4">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%2314120f'/%3E%3Cpath d='M9 7h14v18H9z' fill='none' stroke='%23d7a86e' stroke-width='2'/%3E%3Cpath d='M12 7v18M20 7v18M9 12h3M9 17h3M9 22h3M20 12h3M20 17h3M20 22h3' stroke='%23d7a86e' stroke-width='1.5'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="static/css/director.css?v=2.1">
 </head>
 <body>
   <svg class="svg-sprite" aria-hidden="true">
@@ -314,6 +315,10 @@
             <div class="group-toolbar">
               <div class="group-switcher" id="groupSwitcher" role="tablist" aria-label="镜头组"></div>
               <div class="group-tools">
+                <button class="copy-group-trigger" id="copyGroupPromptTop" type="button" data-copy-group>
+                  <svg><use href="#i-copy"></use></svg>
+                  复制本组提示词
+                </button>
                 <button class="icon-button quiet" id="previousGroup" aria-label="上一组" title="上一组">
                   <svg><use href="#i-chevron-left"></use></svg>
                 </button>
@@ -350,7 +355,7 @@
               </button>
             </div>
 
-            <div class="shot-grid" id="shotGrid"></div>
+            <div class="director-sheet" id="shotGrid"></div>
 
             <div class="timeline-panel">
               <div class="timeline-heading">
@@ -363,9 +368,13 @@
                   <svg><use href="#i-plus"></use></svg>
                   增加镜头
                 </button>
-                <button class="text-button" id="copyGroup">
+                <button class="text-button copy-group-prompt" id="copyGroupPrompt" type="button" data-copy-group>
                   <svg><use href="#i-copy"></use></svg>
-                  复制本组
+                  复制本组提示词
+                </button>
+                <button class="text-button" id="duplicateGroup">
+                  <svg><use href="#i-plus"></use></svg>
+                  复制为新组
                 </button>
                 <button class="text-button" id="copyEpisode">
                   <svg><use href="#i-copy"></use></svg>
@@ -389,7 +398,7 @@
           <div class="inspector-empty" id="inspectorEmpty">
             <svg><use href="#i-film"></use></svg>
             <strong>尚未选择镜头</strong>
-            <span>点选中央镜头卡，可编辑画面、台词与参考图。</span>
+            <span>点选导演分镜表中的镜头行，可编辑画面、台词与参考图。</span>
           </div>
           <form class="shot-form" id="shotForm" hidden>
             <div class="shot-id-row">
@@ -414,13 +423,20 @@
 
             <div class="reference-block">
               <div class="reference-heading">
-                <div><strong>参考图</strong><span>人物 / 场景 / 道具</span></div>
+                <div>
+                  <strong>本镜视觉参考</strong>
+                  <span>按人物、场景、道具分类导入；生成时只参考对应视觉特征</span>
+                </div>
                 <button type="button" class="text-button" id="addReference">
-                  <svg><use href="#i-image"></use></svg>
-                  添加
+                  <svg><use href="#i-plus"></use></svg>
+                  导入
                 </button>
               </div>
               <input type="file" id="referenceFile" accept="image/*" hidden>
+              <label class="reference-search">
+                <svg><use href="#i-scan"></use></svg>
+                <input id="referenceSearch" type="search" placeholder="搜索资产名称" autocomplete="off">
+              </label>
               <div class="reference-tabs" id="referenceTypeTabs">
                 <button type="button" class="active" data-ref-type="character">人物</button>
                 <button type="button" data-ref-type="scene">场景</button>
@@ -536,17 +552,39 @@
   </div>
 
   <div class="generation-overlay" id="generationOverlay" hidden aria-live="polite">
-    <div class="generation-light"></div>
-    <div class="generation-copy">
-      <span>导演台正在编排</span>
+    <div class="generation-beam"></div>
+    <div class="generation-grain"></div>
+    <div class="generation-frame" aria-hidden="true">
+      <span class="generation-frame-label">DIRECTOR / STORYBOARD</span>
+      <div class="generation-reel">
+        <i></i><i></i><i></i><i></i>
+      </div>
+      <div class="generation-reticle">
+        <span></span><span></span><span></span><span></span>
+      </div>
+    </div>
+    <div class="generation-content">
+      <div class="generation-kicker">
+        <span>漫剧镜头编排</span>
+        <b id="generationOverlayPercent">0%</b>
+      </div>
       <strong id="generationOverlayTitle">拆解镜头语言</strong>
       <small id="generationOverlayMeta">正在保持台词与集数边界</small>
+      <div class="generation-overlay-progress"><span id="generationOverlayProgress"></span></div>
+      <div class="generation-shot-skeleton" aria-hidden="true">
+        <i></i><i></i><i></i><i></i><i></i>
+      </div>
+      <div class="generation-footer">
+        <span id="generationOverlayStage">读取剧本节拍</span>
+        <span>镜头连续性校验中</span>
+      </div>
+      <button class="generation-cancel" id="generationOverlayCancel" type="button">停止生成</button>
     </div>
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
-  <script src="static/js/prompts.js?v=2.2"></script>
-  <script src="static/js/director.js?v=1.4"></script>
+  <script src="static/js/prompts.js?v=2.4"></script>
+  <script src="static/js/director.js?v=2.1"></script>
 </body>
 </html>
