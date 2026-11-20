@@ -551,7 +551,7 @@ select {
 
 input::placeholder,
 textarea::placeholder {
-  color: color-mix(in srgb, var(--faint) 72%, transparent);
+  color: var(--muted);
 }
 
 input:focus,
@@ -1158,7 +1158,7 @@ select:focus {
   border-right: 1px solid var(--line);
   background: transparent;
   color: var(--faint);
-  font-size: 10px;
+  font-size: 11px;
   transition:
     color .18s var(--ease),
     background-color .18s var(--ease);
@@ -1377,7 +1377,7 @@ select:focus {
   border-radius: 7px;
   background: var(--accent-soft);
   color: var(--text);
-  font-size: 9px;
+  font-size: 11px;
   white-space: nowrap;
   transition:
     border-color .18s var(--ease),
@@ -1401,7 +1401,7 @@ select:focus {
 .group-counter {
   min-width: 46px;
   color: var(--faint);
-  font-size: 9px;
+  font-size: 11px;
   text-align: center;
   font-variant-numeric: tabular-nums;
 }
@@ -1564,7 +1564,7 @@ select:focus {
   border-bottom: 1px solid var(--line);
   background: color-mix(in srgb, var(--ground) 78%, var(--panel));
   color: var(--faint);
-  font-size: 9px;
+  font-size: 11px;
   font-weight: 550;
   letter-spacing: .055em;
 }
@@ -1689,12 +1689,12 @@ select:focus {
 
 .shot-sheet-lens span {
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
 }
 
 .shot-sheet-lens em {
   color: var(--accent);
-  font-size: 9px;
+  font-size: 11px;
   font-style: normal;
 }
 
@@ -1714,7 +1714,7 @@ select:focus {
 
 .shot-sheet-duration span {
   color: var(--faint);
-  font-size: 9px;
+  font-size: 11px;
 }
 
 .shot-sheet-visual p,
@@ -1723,7 +1723,7 @@ select:focus {
 .shot-sheet-prompt p {
   margin: 0;
   color: var(--muted);
-  font-size: 10px;
+  font-size: 11px;
   line-height: 1.58;
 }
 
@@ -1767,7 +1767,7 @@ select:focus {
 
 .shot-sheet-dialogue > span {
   color: var(--faint);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.55;
 }
 
@@ -1815,7 +1815,7 @@ select:focus {
   background:
     repeating-linear-gradient(135deg, transparent 0 9px, color-mix(in srgb, var(--line-soft) 30%, transparent) 9px 10px);
   color: var(--faint);
-  font-size: 9px;
+  font-size: 11px;
   transition:
     background-color .16s var(--ease),
     color .16s var(--ease);
@@ -1848,13 +1848,13 @@ select:focus {
 
 .timeline-heading h2 {
   margin: 0;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 500;
 }
 
 .timeline-heading span {
   color: var(--faint);
-  font-size: 9px;
+  font-size: 11px;
   font-variant-numeric: tabular-nums;
 }
 
@@ -2415,19 +2415,18 @@ select:focus {
   margin-bottom: 18px;
   padding: 11px 12px;
   border: 1px solid var(--line);
-  border-left: 2px solid var(--accent);
   border-radius: 6px;
   background: var(--ground);
 }
 
 .notice strong {
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 500;
 }
 
 .notice span {
   color: var(--faint);
-  font-size: 9px;
+  font-size: 11px;
   line-height: 1.6;
 }
 
